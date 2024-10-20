@@ -1,6 +1,6 @@
 library(worldfootballR)
 library(dplyr)
-
+?tm_player_market_values
 # Premier League
 premier_league_valuations <- tm_player_market_values(country_name = "England",
                                                start_year = 2022)
