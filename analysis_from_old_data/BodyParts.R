@@ -5,15 +5,16 @@ library(png)
 library(grid)
 
 premier_player_injuries <- read.csv("data/premier_player_injuries.csv")
-france_player_injuries <- read.csv("data/france_player_injuries")
-spain_player_injuries <- read.csv("data/spain_player_injuries")
-italy_player_injuries <- read.csv("data/italy_player_injuries")
-germany_player_injuries <- read.csv("data/germany_player_injuries")
-View(premier_player_injuries)
 
-. <- premier_player_injuries %>% 
-  select(injury) %>% distinct() %>% fliter()
-View(.)
+create_circle <- function(x_center, y_center, radius, linewidth, n_points = 100) {
+  theta <- seq(0, 2 * pi, length.out = n_points)
+  data.frame(
+    x_rim = x_center + radius * cos(theta),
+    y_rim = y_center + radius * sin(theta),
+    linewidth = linewidth
+  )
+}
+
 
 t <- premier_player_injuries %>% 
   mutate(body.part = case_when(
@@ -26,45 +27,46 @@ t <- premier_player_injuries %>%
     grepl("ankle", injury, ignore.case = TRUE) ~ "ankle",
     grepl("calf|achilles|shin", injury, ignore.case = TRUE) ~ "calf",
     grepl("groin", injury, ignore.case = TRUE) ~ "groin",
-    grepl("back", injury, ignore.case = TRUE) ~ "back",
+    grepl("back|lumbago", injury, ignore.case = TRUE) ~ "back",
     grepl("hand", injury, ignore.case = TRUE) ~ "hand",
     grepl("elbow", injury, ignore.case = TRUE) ~ "elbow",
     grepl("arm", injury, ignore.case = TRUE) ~ "arm",
-    grepl("finger", injury, ignore.case = TRUE) ~ "finger",
-    grepl("lumbago", injury, ignore.case = TRUE) ~ "low back"
+    grepl("finger", injury, ignore.case = TRUE) ~ "finger"
   )) %>% filter(!(is.na(body.part))) %>% 
   group_by(body.part) %>% 
   summarise(count = n()) %>% 
   arrange(desc(count))
 
 View(t)
-body_image = readPNG("resources/body.png")
+View(circle_data)
 
-injury_locations <- data.frame(
-  x = c(0.46, 0.45, 0.47, 0.47, 0.5, 0.45, 0.5, 0.45, 0.5, 0.34, 0.45, 0.355, 0.33, 0.37, 0.5, 0, 1),  
-  y = c(0.3, 0.4, 0.06, 0.2, 0.5, 0.01, 0.65, 0.48, 0.95, 0.51, 0.68, 0.58, 0.45, 0.63, 0.58, 0, 1),  
-  injury_count = c(t$count, 0, 0)
-)
+body_image = readPNG("resources/body_cr.png")
+body_image <- rasterGrob(body_image, width = unit(1, "npc"), height = unit(1, "npc"))
 
-
-ggplot() +
-  annotation_custom(rasterGrob(body_image, 
-                               width = unit(1, "npc"), 
-                               height = unit(1, "npc")),
-                    -Inf, Inf, -Inf, Inf) +
-  theme_void() + geom_point(data = injury_locations, 
-                            aes(x = x, y = y, size = injury_count,
-                                color = injury_count, alpha = 0.9)) +
-  scale_color_gradient(low = "white", high = "red") + 
-  scale_size(range = c(5, 20)) + 
-  labs(title = "Injury Heatmap on Human Body")
+t <- t %>% 
+  mutate(x = c(0.55, 0.35, 0.1, 0.2, 0.49, 0.29, 0.4, 0.4, 0.64, 0.13, 0.46, 0.37, 0.68, 0.3),  
+         y = c(0.34, 0.33, 0.1, 0.2, 0.47, 0.14, 0.65, 0.51, 0.91, 0.73, 0.7, 0.83, 0.72, 0.84),  
+  ) %>% 
+  mutate(label = paste(body.part, as.character(count), sep = "\n"))
 
 
+circle_data <- t %>%
+  rowwise() %>%
+  mutate(radius = sqrt(count) * 0.003) %>% 
+  do(cbind(., create_circle(.$x, .$y, .$radius, .$radius*9)))
 
-
-
-
-
+ggplot(circle_data, aes(x = x_rim, y = y_rim, 
+                        group = body.part, 
+                        fill = "#D32F2F")) +
+  annotation_custom(body_image, xmin = 0, xmax = 1, ymin = 0, ymax = 1) +
+  geom_polygon(alpha = 0.5, color = "white",
+               aes(linewidth = linewidth)) +
+  scale_linewidth_identity() +
+  coord_equal() + xlim(0, 1) +
+  geom_text(data = t, aes(x = x, y = y, label = label),
+            color = "white", size = 3.5, fontface = "bold") +
+  theme_void() +
+  theme(legend.position = "none")
 
 
 

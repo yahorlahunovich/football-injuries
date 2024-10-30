@@ -10,6 +10,10 @@ inj <- df %>% mutate(injury = lapply(injuries,
                                 function(x) strsplit(x[[1]], ",")[[1]][2])) %>% 
   select(injury)
 
+. <- inj %>% group_by(injury) %>% summarize(count = n()) %>% 
+  arrange(desc(count))
+View(.)
+
 t <- inj %>% 
   mutate(body.part = case_when(
     grepl("knee|meniscus|ligament|patelar", injury, ignore.case = TRUE) ~ "knee",
@@ -31,6 +35,8 @@ t <- inj %>%
   group_by(body.part) %>% 
   summarise(count = n()) %>% 
   arrange(desc(count))
+
+
 
 View(t)
 
