@@ -2,11 +2,14 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(png)
-library(grid)
+library(showtext)
+
+showtext_auto()
+font_add_google("Pacifico", "fancy")
 
 premier_player_injuries <- read.csv("data/premier_player_injuries.csv")
 
-create_circle <- function(x_center, y_center, radius, linewidth, n_points = 100) {
+create_circle <- function(x_center, y_center, radius, linewidth, n_points = 1000) {
   theta <- seq(0, 2 * pi, length.out = n_points)
   data.frame(
     x_rim = x_center + radius * cos(theta),
@@ -18,53 +21,56 @@ create_circle <- function(x_center, y_center, radius, linewidth, n_points = 100)
 
 t <- premier_player_injuries %>% 
   mutate(body.part = case_when(
-    grepl("knee|meniscus|ligament|patelar", injury, ignore.case = TRUE) ~ "knee",
-    grepl("facial|head|eye", injury, ignore.case = TRUE) ~ "face",
-    grepl("hip", injury, ignore.case = TRUE) ~ "hip",
-    grepl("rib", injury, ignore.case = TRUE) ~ "rib",
-    grepl("foot|toe", injury, ignore.case = TRUE) ~ "foot",
-    grepl("hamstring|thighs", injury, ignore.case = TRUE) ~ "thigh",
-    grepl("ankle", injury, ignore.case = TRUE) ~ "ankle",
-    grepl("calf|achilles|shin", injury, ignore.case = TRUE) ~ "calf",
-    grepl("groin", injury, ignore.case = TRUE) ~ "groin",
-    grepl("back|lumbago", injury, ignore.case = TRUE) ~ "back",
-    grepl("hand", injury, ignore.case = TRUE) ~ "hand",
-    grepl("elbow", injury, ignore.case = TRUE) ~ "elbow",
-    grepl("arm", injury, ignore.case = TRUE) ~ "arm",
-    grepl("finger", injury, ignore.case = TRUE) ~ "finger"
+    grepl("knee|meniscus|ligament|patelar", injury, ignore.case = TRUE) ~ "Knee",
+    grepl("facial|head|eye", injury, ignore.case = TRUE) ~ "Head",
+    grepl("hip", injury, ignore.case = TRUE) ~ "Hip",
+    grepl("rib", injury, ignore.case = TRUE) ~ "Rib",
+    grepl("foot|toe", injury, ignore.case = TRUE) ~ "Foot",
+    grepl("hamstring|thighs", injury, ignore.case = TRUE) ~ "Thigh",
+    grepl("ankle", injury, ignore.case = TRUE) ~ "Ankle",
+    grepl("calf|achilles|shin", injury, ignore.case = TRUE) ~ "Calf",
+    grepl("groin", injury, ignore.case = TRUE) ~ "Groin",
+    grepl("back|lumbago", injury, ignore.case = TRUE) ~ "Back",
+    grepl("hand", injury, ignore.case = TRUE) ~ "Hand",
+    grepl("elbow", injury, ignore.case = TRUE) ~ "Elbow",
+    grepl("arm", injury, ignore.case = TRUE) ~ "Arm",
+    grepl("finger", injury, ignore.case = TRUE) ~ "Finger"
   )) %>% filter(!(is.na(body.part))) %>% 
   group_by(body.part) %>% 
   summarise(count = n()) %>% 
   arrange(desc(count))
 
-View(t)
-View(circle_data)
-
-body_image = readPNG("resources/body_cr.png")
+body_image = readPNG("resources/bg_cr.png")
 body_image <- rasterGrob(body_image, width = unit(1, "npc"), height = unit(1, "npc"))
 
 t <- t %>% 
-  mutate(x = c(0.55, 0.35, 0.1, 0.2, 0.49, 0.29, 0.4, 0.4, 0.64, 0.13, 0.46, 0.37, 0.68, 0.3),  
-         y = c(0.34, 0.33, 0.1, 0.2, 0.47, 0.14, 0.65, 0.51, 0.91, 0.73, 0.7, 0.83, 0.72, 0.84),  
+  mutate(x = c(0.55, 0.35, 0.1, 0.2, 0.49, 0.29, 0.4, 0.4, 0.61, 0.13, 0.46, 0.37, 0.68, 0.3),  
+         y = c(0.34, 0.33, 0.1, 0.2, 0.47, 0.14, 0.65, 0.51, 0.94, 0.73, 0.7, 0.83, 0.72, 0.84),  
   ) %>% 
-  mutate(label = paste(body.part, as.character(count), sep = "\n"))
+  mutate(label = paste(body.part, as.character(count), sep = "\n")) %>% 
+  mutate(radius = log(count, base = 1.5) * 0.004) %>% 
+  mutate(label_y = if_else(radius > 0.04, 
+                           y + radius - 0.04, 
+                           y + radius + 0.02)) %>% 
+  mutate(num_y = if_else(radius > 0.04, y - 0.02, y))
 
 
 circle_data <- t %>%
   rowwise() %>%
-  mutate(radius = sqrt(count) * 0.003) %>% 
-  do(cbind(., create_circle(.$x, .$y, .$radius, .$radius*9)))
+  do(cbind(., create_circle(.$x, .$y, .$radius, sqrt(.$radius)*3)))
 
 ggplot(circle_data, aes(x = x_rim, y = y_rim, 
                         group = body.part, 
                         fill = "#D32F2F")) +
   annotation_custom(body_image, xmin = 0, xmax = 1, ymin = 0, ymax = 1) +
-  geom_polygon(alpha = 0.5, color = "white",
+  geom_polygon(alpha = 0.6, color = "white",
                aes(linewidth = linewidth)) +
   scale_linewidth_identity() +
   coord_equal() + xlim(0, 1) +
-  geom_text(data = t, aes(x = x, y = y, label = label),
-            color = "white", size = 3.5, fontface = "bold") +
+  geom_text(data = t, aes(x = x, y = label_y, label = body.part),
+            color = "white", size = 5.6, family = "Pacifico") +
+  geom_text(data = t, aes(x = x, y = num_y, label = as.character(count)),
+            color = "white", size = 8, fontface = "bold") +
   theme_void() +
   theme(legend.position = "none")
 
