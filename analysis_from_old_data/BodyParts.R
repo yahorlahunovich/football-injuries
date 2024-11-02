@@ -3,9 +3,9 @@ library(tidyr)
 library(ggplot2)
 library(png)
 library(showtext)
+library(grid)
 
 showtext_auto()
-font_add_google("Pacifico", "fancy")
 
 premier_player_injuries <- read.csv("data/premier_player_injuries.csv")
 
@@ -48,18 +48,21 @@ t <- t %>%
          y = c(0.34, 0.33, 0.1, 0.2, 0.47, 0.14, 0.65, 0.51, 0.94, 0.73, 0.7, 0.83, 0.72, 0.84),  
   ) %>% 
   mutate(label = paste(body.part, as.character(count), sep = "\n")) %>% 
-  mutate(radius = log(count, base = 1.5) * 0.004) %>% 
+  mutate(radius = if_else(count > 100, 
+                          sqrt(count)*0.0025, 
+                          0.02 + count/10000)) %>% 
   mutate(label_y = if_else(radius > 0.04, 
-                           y + radius - 0.04, 
+                           y + radius - 0.036, 
                            y + radius + 0.02)) %>% 
-  mutate(num_y = if_else(radius > 0.04, y - 0.02, y))
+  mutate(num_y = if_else(radius > 0.04, y - 0.02, y)) %>% 
+  mutate(num_size = if_else(radius >  0.04, 7, 5))
 
 
 circle_data <- t %>%
   rowwise() %>%
-  do(cbind(., create_circle(.$x, .$y, .$radius, sqrt(.$radius)*3)))
+  do(cbind(., create_circle(.$x, .$y, .$radius, sqrt(.$radius*2))))
 
-ggplot(circle_data, aes(x = x_rim, y = y_rim, 
+p <- ggplot(circle_data, aes(x = x_rim, y = y_rim, 
                         group = body.part, 
                         fill = "#D32F2F")) +
   annotation_custom(body_image, xmin = 0, xmax = 1, ymin = 0, ymax = 1) +
@@ -67,12 +70,13 @@ ggplot(circle_data, aes(x = x_rim, y = y_rim,
                aes(linewidth = linewidth)) +
   scale_linewidth_identity() +
   coord_equal() + xlim(0, 1) +
+  scale_size_identity() +
   geom_text(data = t, aes(x = x, y = label_y, label = body.part),
             color = "white", size = 5.6, family = "Pacifico") +
-  geom_text(data = t, aes(x = x, y = num_y, label = as.character(count)),
-            color = "white", size = 8, fontface = "bold") +
+  geom_text(data = t, aes(x = x, y = num_y, label = as.character(count), 
+                          size = num_size),
+            color = "white", fontface = "bold") +
   theme_void() +
   theme(legend.position = "none")
 
-
-
+ggsave("body_plot.png", plot = p)
