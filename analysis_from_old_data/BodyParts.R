@@ -81,14 +81,14 @@ p <- ggplot(circle_data, aes(x = x_rim, y = y_rim,
             color = "white", fontface = "bold") +
   theme_void() +
   theme(legend.position = "none") + 
-  labs(title = "Number of injuries by bodypart") + 
+  labs(title = "Percentage of injuries by bodypart") + 
   theme(
     plot.title = element_text(
       size = 20,              
       face = "bold",        
       color = "#121420",
       vjust = -1.5,
-      hjust = 0.5,
+      hjust = 0.4,
       family = "Roboto Serif"
     )
   )
