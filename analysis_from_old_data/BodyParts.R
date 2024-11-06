@@ -6,18 +6,11 @@ library(showtext)
 library(grid)
 
 showtext_auto()
+font_add_google(name = "Roboto", family = "Roboto")
+font_add_google(name = "Lobster", family = "Lobster")
+font_add_google(name = "Roboto Serif", family = "Roboto Serif")
 
 premier_player_injuries <- read.csv("data/premier_player_injuries.csv")
-
-create_circle <- function(x_center, y_center, radius, linewidth, n_points = 1000) {
-  theta <- seq(0, 2 * pi, length.out = n_points)
-  data.frame(
-    x_rim = x_center + radius * cos(theta),
-    y_rim = y_center + radius * sin(theta),
-    linewidth = linewidth
-  )
-}
-
 
 t <- premier_player_injuries %>% 
   mutate(body.part = case_when(
@@ -40,7 +33,7 @@ t <- premier_player_injuries %>%
   summarise(count = n()) %>% 
   arrange(desc(count))
 
-body_image = readPNG("resources/bg_cr.png")
+body_image = readPNG("resources/body_cr.png")
 body_image <- rasterGrob(body_image, width = unit(1, "npc"), height = unit(1, "npc"))
 
 t <- t %>% 
@@ -55,8 +48,18 @@ t <- t %>%
                            y + radius - 0.036, 
                            y + radius + 0.02)) %>% 
   mutate(num_y = if_else(radius > 0.04, y - 0.02, y)) %>% 
-  mutate(num_size = if_else(radius >  0.04, 7, 5))
+  mutate(num_size = if_else(radius >  0.04, 4.5, 3)) %>% 
+  mutate(fraction = count/sum(count), fraction = round(fraction*100, 1)) %>% 
+  mutate(fraction = paste(fraction, "%", sep = ""))
 
+create_circle <- function(x_center, y_center, radius, linewidth, n_points = 1000) {
+  theta <- seq(0, 2 * pi, length.out = n_points)
+  data.frame(
+    x_rim = x_center + radius * cos(theta),
+    y_rim = y_center + radius * sin(theta),
+    linewidth = linewidth
+  )
+}
 
 circle_data <- t %>%
   rowwise() %>%
@@ -72,11 +75,22 @@ p <- ggplot(circle_data, aes(x = x_rim, y = y_rim,
   coord_equal() + xlim(0, 1) +
   scale_size_identity() +
   geom_text(data = t, aes(x = x, y = label_y, label = body.part),
-            color = "white", size = 5.6, family = "Pacifico") +
-  geom_text(data = t, aes(x = x, y = num_y, label = as.character(count), 
+            color = "white", size = 5.6, family = "Roboto") +
+  geom_text(data = t, aes(x = x, y = num_y, label = fraction, 
                           size = num_size),
             color = "white", fontface = "bold") +
   theme_void() +
-  theme(legend.position = "none")
-
+  theme(legend.position = "none") + 
+  labs(title = "Percentage of injuries by bodypart") + 
+  theme(
+    plot.title = element_text(
+      size = 20,              
+      face = "bold",        
+      color = "#121420",
+      vjust = -1.5,
+      hjust = 0.4,
+      family = "Roboto Serif"
+    )
+  )
+p
 ggsave("body_plot.png", plot = p)
