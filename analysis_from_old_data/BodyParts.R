@@ -33,12 +33,12 @@ t <- premier_player_injuries %>%
   summarise(count = n()) %>% 
   arrange(desc(count))
 
-body_image = readPNG("resources/body_cr.png")
-body_image <- rasterGrob(body_image, width = unit(1, "npc"), height = unit(1, "npc"))
+  body_image = readPNG("resources/body_cr.png")
+  body_image <- rasterGrob(body_image, width = unit(1, "npc"), height = unit(1, "npc"))
 
 t <- t %>% 
-  mutate(x = c(0.55, 0.35, 0.1, 0.2, 0.49, 0.29, 0.4, 0.4, 0.61, 0.13, 0.46, 0.37, 0.68, 0.3),  
-         y = c(0.34, 0.33, 0.1, 0.2, 0.47, 0.14, 0.65, 0.51, 0.94, 0.73, 0.7, 0.83, 0.72, 0.84),  
+  mutate(x = c(0.55, 0.35, 0.1, 0.2, 0.49, 0.29, 0.4, 0.4, 0.61, 0.13, 0.46, 0.37, 0.7, 0.3),  
+         y = c(0.34, 0.33, 0.1, 0.2, 0.47, 0.14, 0.65, 0.51, 0.94, 0.73, 0.7, 0.85, 0.7, 0.84),  
   ) %>% 
   mutate(label = paste(body.part, as.character(count), sep = "\n")) %>% 
   mutate(radius = if_else(count > 100, 
@@ -63,7 +63,10 @@ create_circle <- function(x_center, y_center, radius, linewidth, n_points = 1000
 
 circle_data <- t %>%
   rowwise() %>%
-  do(cbind(., create_circle(.$x, .$y, .$radius, sqrt(.$radius*2))))
+  do(cbind(., create_circle(.$x, .$y, .$radius, sqrt(.$radius*50))))
+
+t$num_size[c(4, 5)] <- c(4, 4)
+t$num_size[10:14] <- rep(2.5, 5)
 
 p <- ggplot(circle_data, aes(x = x_rim, y = y_rim, 
                         group = body.part, 
@@ -75,16 +78,16 @@ p <- ggplot(circle_data, aes(x = x_rim, y = y_rim,
   coord_equal() + xlim(0, 1) +
   scale_size_identity() +
   geom_text(data = t, aes(x = x, y = label_y, label = body.part),
-            color = "white", size = 5.6, family = "Roboto") +
+            color = "lightblue", size = 40, family = "Roboto") +
   geom_text(data = t, aes(x = x, y = num_y, label = fraction, 
-                          size = num_size),
-            color = "white", fontface = "bold") +
+                          size = num_size * 10),
+            color = "#890764", fontface = "bold") +
   theme_void() +
   theme(legend.position = "none") + 
   labs(title = "Percentage of injuries by bodypart") + 
   theme(
     plot.title = element_text(
-      size = 20,              
+      size = 200,              
       face = "bold",        
       color = "#121420",
       vjust = -1.5,
@@ -92,5 +95,4 @@ p <- ggplot(circle_data, aes(x = x_rim, y = y_rim,
       family = "Roboto Serif"
     )
   )
-p
-ggsave("body_plot.png", plot = p)
+ggsave("body_plot.png", plot = p, width = 18, height = 18, units = "in", dpi = 300)
