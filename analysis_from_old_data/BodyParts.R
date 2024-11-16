@@ -68,6 +68,24 @@ circle_data <- t %>%
 t$num_size[c(4, 5)] <- c(4, 4)
 t$num_size[10:14] <- rep(2.5, 5)
 
+t <- t %>% mutate(label_x = x)
+t$label_y[c(3, 4, 6, 7, 9, 11, 13)] <- c(t$label_y[3] + 0.06, 
+                        t$label_y[4] + 0.05,
+                        t$label_y[6] - 0.06,
+                        t$label_y[7] - 0.02,
+                        t$label_y[9] + 0.03,
+                        t$label_y[11] - 0.09,
+                        t$label_y[13] - 0.03)
+t$label_x[c(2, 5, 6, 7, 8, 11, 13, 14)] <- c(t$label_x[2] - 0.12,
+                        t$label_x[5] + 0.09,
+                        t$label_x[6] + 0.07,
+                        t$label_x[7] - 0.06,
+                        t$label_x[8] + 0.015,
+                        t$label_x[11] + 0.04,
+                        t$label_x[13] + 0.08,
+                        t$label_x[14] - 0.02)
+t$num_y[2:5] <- t$y[2:5]
+
 p <- ggplot(circle_data, aes(x = x_rim, y = y_rim, 
                         group = body.part, 
                         fill = "#D32F2F")) +
@@ -77,22 +95,12 @@ p <- ggplot(circle_data, aes(x = x_rim, y = y_rim,
   scale_linewidth_identity() +
   coord_equal() + xlim(0, 1) +
   scale_size_identity() +
-  geom_text(data = t, aes(x = x, y = label_y, label = body.part),
-            color = "lightblue", size = 40, family = "Roboto") +
+  geom_text(data = t, aes(x = label_x, y = label_y, label = body.part),
+            color = "#36454F", size = 40, family = "Roboto Serif") +
   geom_text(data = t, aes(x = x, y = num_y, label = fraction, 
                           size = num_size * 10),
-            color = "#890764", fontface = "bold") +
+            color = "black", fontface = "bold") +
   theme_void() +
-  theme(legend.position = "none") + 
-  labs(title = "Percentage of injuries by bodypart") + 
-  theme(
-    plot.title = element_text(
-      size = 200,              
-      face = "bold",        
-      color = "#121420",
-      vjust = -1.5,
-      hjust = 0.4,
-      family = "Roboto Serif"
-    )
-  )
+  theme(legend.position = "none") 
 ggsave("body_plot.png", plot = p, width = 18, height = 18, units = "in", dpi = 300)
+
