@@ -33,7 +33,7 @@ t <- premier_player_injuries %>%
   summarise(count = n()) %>% 
   arrange(desc(count))
 
-  body_image = readPNG("resources/body_cr.png")
+  body_image = readPNG("resources/cr2.png")
   body_image <- rasterGrob(body_image, width = unit(1, "npc"), height = unit(1, "npc"))
 
 t <- t %>% 
@@ -76,30 +76,32 @@ t$label_y[c(3, 4, 6, 7, 9, 11, 13)] <- c(t$label_y[3] + 0.06,
                         t$label_y[9] + 0.03,
                         t$label_y[11] - 0.09,
                         t$label_y[13] - 0.03)
-t$label_x[c(2, 5, 6, 7, 8, 11, 13, 14)] <- c(t$label_x[2] - 0.12,
-                        t$label_x[5] + 0.09,
+t$label_x[c(1, 2, 5, 6, 7, 8, 11, 13, 14)] <- c(
+                        t$label_x[1] + 0.13,
+                        t$label_x[2] - 0.12,
+                        t$label_x[5] + 0.1,
                         t$label_x[6] + 0.07,
                         t$label_x[7] - 0.06,
                         t$label_x[8] + 0.015,
                         t$label_x[11] + 0.04,
                         t$label_x[13] + 0.08,
                         t$label_x[14] - 0.02)
-t$num_y[2:5] <- t$y[2:5]
+t$num_y[1:5] <- t$y[1:5]
 
 p <- ggplot(circle_data, aes(x = x_rim, y = y_rim, 
-                        group = body.part, 
-                        fill = "#D32F2F")) +
+                        group = body.part 
+                        ), fill = "#DBE2EF") +
   annotation_custom(body_image, xmin = 0, xmax = 1, ymin = 0, ymax = 1) +
-  geom_polygon(alpha = 0.6, color = "white",
+  geom_polygon(alpha = 0.72, color = "#DBE2EF",
                aes(linewidth = linewidth)) +
   scale_linewidth_identity() +
   coord_equal() + xlim(0, 1) +
   scale_size_identity() +
-  geom_text(data = t, aes(x = label_x, y = label_y, label = body.part),
-            color = "#36454F", size = 40, family = "Roboto Serif") +
+#  geom_text(data = t, aes(x = label_x, y = label_y, label = body.part),
+#            color = "#DBE2EF", size = 40, family = "Roboto Serif") +
   geom_text(data = t, aes(x = x, y = num_y, label = fraction, 
                           size = num_size * 10),
-            color = "black", fontface = "bold") +
+            color = "#DBE2EF", fontface = "bold") +
   theme_void() +
   theme(legend.position = "none") 
 ggsave("body_plot.png", plot = p, width = 18, height = 18, units = "in", dpi = 300)
