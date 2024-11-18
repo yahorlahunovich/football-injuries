@@ -2,11 +2,31 @@ library(dplyr)
 library(ggplot2)
 library(ggtext)
 library(lubridate)
+library(tools)
+library(png)
 
 df <- read.csv("~/Documents/uni/sem_3/twd/football-injuries/analysis_from_new_data/Final-player.csv")
 injuries <- read.csv("~/Documents/uni/sem_3/twd/football-injuries/analysis_from_new_data/Final-player-injuies.csv")
 
+#delete injuries==rest data because of lack the information about this
+injuries[injuries$type == "Rest ",]$type = NA
+
+injuries[injuries$type == "Ill",]$type = "Illness"
 # let's see which injuries are the worst(based on recovery days)
+injuries <- injuries %>%
+  filter(!is.na(type), tolower(type) != "unknown injury")
+injuries$type <- tolower(injuries$type) 
+injuries$type <- dplyr::case_when(
+  injuries$type == "knee injury" ~ "Knee Issue",
+  injuries$type == "knee problems" ~ "Knee Issue",
+  injuries$type == "ill-influenza" ~ "Illness",
+  injuries$type == "hamstring-thigh" ~ "Hamstring/Thigh Issue",
+  injuries$type == "calf injury" ~ "Calf Issue",
+  injuries$type == "calf problems" ~ "Calf Issue",
+  TRUE ~ injuries$type 
+)
+
+injuries$type <- toTitleCase(tolower(injuries$type))
 inj_rec <- injuries %>% 
   filter(!is.na(days)) %>%
   mutate(days = as.numeric(days)) %>% 
@@ -16,17 +36,19 @@ inj_rec <- injuries %>%
     mean_day = mean(days, na.rm = TRUE)
   ) %>% 
   arrange(desc(count)) %>% 
-  head(25)
+  head(15) 
 
+
+background_image <- png::readPNG("~/Documents/uni/sem_3/twd/football-injuries/analy")
 
 ggplot(inj_rec, aes(x = reorder(type, mean_day), y = mean_day, fill = count)) +
   geom_bar(stat = "identity", width = 0.7) +
-  scale_fill_gradient(low = "#c2f0c2", high = "#006400") +
+  scale_fill_gradient(low = "#3F72AF", high = "#112D4E") +
   geom_text(aes(label = paste0(round(mean_day, 1))), 
-            hjust = -0.2, color = "black", size = 4, fontface = "bold") + 
+            hjust = -0.2, color = "#112D4E", size = 4, fontface = "bold") + 
   labs(
     title = "Average Recovery Time by Injury Type",
-    subtitle = "Mean days required for players to recover from top 25 types of injury",
+    subtitle = "Mean days required for players to recover from top 15 types of injury",
     x = "Injury Type",
     y = "Average Days to Recover",
     fill = "Frequency"
@@ -36,22 +58,21 @@ ggplot(inj_rec, aes(x = reorder(type, mean_day), y = mean_day, fill = count)) +
   theme_minimal(base_size = 15) + 
   theme(
     panel.grid = element_blank(),
-    plot.background = element_rect(fill = "#b6c2b6", color = NA),
-    panel.background = element_rect(fill = "#b6c2b6", color = NA),
-    plot.title = element_text(size = 24, face = "bold", color = "#004d00"),
-    plot.subtitle = element_text(size = 16, color = "#005700"),
-    axis.title.x = element_text(size = 14, face = "bold", color = "#004d00"),
-    axis.title.y = element_text(size = 14, face = "bold", color = "#004d00"),
-    axis.text.x = element_text(size = 12, color = "#004d00"), 
+    plot.title = element_blank(),
+    plot.subtitle = element_text(size = 16, color = "#3F72AF"),
+    axis.title.x = element_text(size = 14, face = "bold", color = "#3F72AF"),
+    axis.title.y = element_blank(),
+    axis.text.x = element_text(size = 12, color = "#3F72AF"), 
     axis.text.y = element_text(
       size = 12, 
       face = "bold", 
-      color = "#004d00",
+      color = "#3F72AF",
       margin = margin(r = 10)
     ), 
-    legend.title = element_text(size = 14, face = "bold", color = "#004d00"),
-    legend.text = element_text(size = 12, color = "#004d00")
+    legend.title = element_text(size = 14, face = "bold", color = "#3F72AF"),
+    legend.text = element_text(size = 12, color = "#3F72AF")
   )
+
 #bmi
 injuries <- injuries %>%
   mutate(
@@ -71,75 +92,7 @@ grouped_injuries <- injuries %>%
 
 
 
-injuries_summary <- injuries %>%
-  mutate(
-    birth_date = ymd(birth),
-    season_end_year = paste0("20", substr(season, 4, 5)),
-    injury_date = ymd(paste0(season_end_year, "-06-30")),
-    age = as.integer(interval(birth_date, injury_date) / years(1))
-  ) %>%
-  group_by(id, name, age) %>%
-  summarise(total_injuries = n()) %>%
-  ungroup()
 
-ggplot(injuries_summary, aes(x = age, y = total_injuries)) +
-  geom_point(alpha = 0.4, color = "#1f78b4") +
-  geom_smooth(method = "loess", color = "#e31a1c", size = 1) +
-  labs(
-    title = "Total Injuries per Player by Age",
-    subtitle = "Relationship Between Player Age and Number of Injuries",
-    x = "Age (Years)",
-    y = "Number of Injuries"
-  ) +
-  theme_minimal(base_size = 15) +
-  theme(
-    plot.title = element_text(size = 20, face = "bold", color = "#2c3e50"),
-    plot.subtitle = element_text(size = 14, color = "#34495e"),
-    axis.title = element_text(size = 14, face = "bold"),
-    axis.text = element_text(size = 12),
-    panel.grid.major = element_line(color = "#ecf0f1"),
-    panel.grid.minor = element_blank()
-  ) +
-  scale_x_continuous(breaks = seq(18, 40, by = 2)) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
-  coord_cartesian(clip = "off")
-
-
-
-
-injuries_summary <- injuries %>%
-  mutate(
-    birth_date = ymd(birth),
-    season_end_year = ifelse(as.numeric(substr(season, 4, 5)) > 50,
-                             paste0("19", substr(season, 4, 5)),
-                             paste0("20", substr(season, 4, 5))),
-    injury_date = ymd(paste0(season_end_year, "-06-30")),
-    age = as.integer(interval(birth_date, injury_date) / years(1))
-  ) %>%
-  group_by(age) %>%
-  summarise(total_injuries = n(), .groups = 'drop')
-
-ggplot(injuries_summary, aes(x = age, y = total_injuries)) +
-  geom_bar(stat = "identity", fill = "#006400") +
-  geom_text(aes(label = total_injuries), vjust = -0.5, size = 3) +
-  labs(
-    title = "Total Injuries by Player Age",
-    subtitle = "Aggregate Number of Injuries Across All Players",
-    x = "Age (Years)",
-    y = "Total Number of Injuries"
-  ) +
-  theme_minimal(base_size = 15) +
-  theme(
-    plot.title = element_text(size = 20, face = "bold", color = "#2c3e50"),
-    plot.subtitle = element_text(size = 14, color = "#34495e"),
-    axis.title = element_text(size = 14, face = "bold"),
-    axis.text = element_text(size = 12),
-    panel.grid.major = element_line(color = "#ecf0f1"),
-    panel.grid.minor = element_blank()
-  ) +
-  scale_x_continuous(breaks = seq(18, 40, by = 2)) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
-  coord_cartesian(clip = "off")
 
 #Football players with the most injuries
 
@@ -185,29 +138,15 @@ top_premier <- bind_rows(chelsea, liverpool, mu, mc, arsenal)
 
 
 
-# ill by age
+# injuries by age
 
-ill <- injuries %>% 
-  filter(type == "Ill") %>% 
-  mutate(
-    birth_date = ymd(birth),
-    season_end_year = paste0("20", substr(season, 4, 5)),
-    injury_date = ymd(paste0(season_end_year, "-06-30")),
-    age = as.integer(interval(birth_date, injury_date) / years(1))
-  ) 
+injury_types <- c("Illness", "Cruciate Ligament Rupture", "Knee Injury", "Ankle Injury", "Shoulder Injury")
 
-ill_age <- ill %>% 
-  group_by(age) %>% 
-  summarise(
-    count = n(),
-    .groups = 'drop'
-  )
-
-total_players <- df %>% 
+total_players <- injuries %>% 
   mutate(
     birth_date = ymd(birth)
   ) %>% 
-  distinct(id, birth) %>% 
+  distinct(id, birth_date, season) %>% 
   mutate(
     season_end_year = paste0("20", substr(season, 4, 5)),
     season_end_date = ymd(paste0(season_end_year, "-06-30")),
@@ -219,21 +158,98 @@ total_players <- df %>%
     .groups = 'drop'
   )
 
-ill_rate_by_age <- ill_age %>% 
-  left_join(total_players, by = "age") %>% 
-  mutate(
-    ill_rate = count / total_players
-  ) %>% 
-  filter(!is.na(ill_rate) & total_players > 0)
+# Process each injury type
+injury_rates <- lapply(injury_types, function(injury_type) {
+  injuries_filtered <- injuries %>% 
+    filter(type == injury_type) %>% 
+    mutate(
+      birth_date = ymd(birth),
+      season_end_year = paste0("20", substr(season, 4, 5)),
+      # Make sure to handle NA cases or unexpected season format
+      injury_date = tryCatch(
+        ymd(paste0(season_end_year, "-06-30")),
+        error = function(e) NA  # return NA if error occurs
+      ),
+      age = ifelse(!is.na(injury_date), as.integer(interval(birth_date, injury_date) / years(1)), NA)
+    )
+  
+  injury_age <- injuries_filtered %>% 
+    group_by(age) %>% 
+    summarise(
+      count = n(),
+      .groups = 'drop'
+    )
+  
+  injury_rate <- injury_age %>% 
+    left_join(total_players, by = "age") %>% 
+    mutate(
+      rate = count / total_players
+    ) %>% 
+    filter(!is.na(rate) & total_players > 0) %>%
+    mutate(injury_type = injury_type)
+  
+  return(injury_rate)
+}) %>% 
+  bind_rows()
 
-ggplot(ill_rate_by_age, aes(x = age, y = ill_rate)) +
-  geom_line(color = "#006400", size = 1) +
-  geom_point(color = "#006400", size = 3) +
+# Plot the injury rates by age for each injury type
+ggplot(injury_rates, aes(x = age, y = rate, color = injury_type)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
   labs(
-    title = "Proportion of 'Ill' Injuries by Player Age",
+    title = "Proportion of Injuries by Player Age",
     subtitle = "Normalized by Total Number of Players",
     x = "Age (Years)",
-    y = "Proportion of 'Ill' Injuries"
+    y = "Proportion of Injuries",
+    color = "Injury Type"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.background = element_rect(fill = "#DBE2EF", color = NA),  # фон графика
+    panel.background = element_rect(fill = "#DBE2EF", color = NA),  # фон панели
+    plot.title = element_text(size = 24, face = "bold", color = "#3F72AF"),  # цвет заголовка
+    plot.subtitle = element_text(size = 16, color = "#3F72AF"),  # цвет подзаголовка
+    axis.title.x = element_text(size = 14, face = "bold", color = "#3F72AF"),  # цвет оси X
+    axis.title.y = element_text(size = 14, face = "bold", color = "#3F72AF"),  # цвет оси Y
+    axis.text.x = element_text(size = 12, color = "#3F72AF"),  # цвет текста оси X
+    axis.text.y = element_text(
+      size = 12,
+      face = "bold",
+      color = "#3F72AF",
+      margin = margin(r = 5)
+    ),  # цвет текста оси Y
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  ) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_cartesian(clip = "off") +
+  scale_color_manual(values = c("#3F72AF", "#112D4E", "#006400", "#8B0000", "#0000FF")) 
+# Popular players
+# Hazard, Neymar, Ronaldo, Messi, Lewandowski
+
+hazard <- injuries[injuries$name == "Eden Hazard",]
+ronaldo <- injuries[injuries$name == "Cristiano Ronaldo",]
+neymar <- injuries[injuries$name == "Neymar",]
+messi <- injuries[injuries$name == "Lionel Messi",]
+lewandowski <- injuries[injuries$name == "Robert Lewandowski",]
+
+combined_injuries <- bind_rows(hazard, ronaldo, neymar, messi, lewandowski)
+
+injuries_by_season <- combined_injuries %>%
+  group_by(season, name) %>%
+  summarise(injury_count = n(), .groups = 'drop') %>%
+  mutate(season_start_year = as.integer(substr(season, 1, 2)) + 2000) %>%
+  arrange(season_start_year) %>%
+  mutate(season = factor(season, levels = unique(season)))
+
+ggplot(injuries_by_season, aes(x = season, y = injury_count, color = name, group = name)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  labs(
+    title = "Number of Injuries per Season",
+    x = "Season",
+    y = "Number of Injuries",
+    color = "Player"
   ) +
   theme_minimal() +
   theme(
@@ -251,7 +267,8 @@ ggplot(ill_rate_by_age, aes(x = age, y = ill_rate)) +
       margin = margin(r = 5)
     ),
     panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank()
+    panel.grid.minor = element_blank(),
+    legend.title = element_text(size = 14, face = "bold", color = "#004d00"),
+    legend.text = element_text(size = 12, color = "#004d00")
   ) +
-  scale_y_continuous(labels = scales::percent_format()) +
-  coord_cartesian(clip = "off")
+  scale_color_brewer(palette = "Set1")
