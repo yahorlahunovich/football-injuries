@@ -66,7 +66,8 @@ circle_data <- t %>%
   do(cbind(., create_circle(.$x, .$y, .$radius, sqrt(.$radius*50))))
 
 t$num_size[c(4, 5)] <- c(4, 4)
-t$num_size[10:14] <- rep(2.5, 5)
+t$num_size[8] <- 2.3
+t$num_size[10:14] <- rep(2, 5)
 
 t <- t %>% mutate(label_x = x)
 t$label_y[c(3, 4, 6, 7, 9, 11, 13)] <- c(t$label_y[3] + 0.06, 
@@ -101,8 +102,7 @@ p <- ggplot(circle_data, aes(x = x_rim, y = y_rim,
 #            color = "#DBE2EF", size = 40, family = "Roboto Serif") +
   geom_text(data = t, aes(x = x, y = num_y, label = fraction, 
                           size = num_size * 10),
-            color = "#DBE2EF", fontface = "bold") +
+            color = "#DBE2EF", family = "Roboto") +
   theme_void() +
   theme(legend.position = "none") 
 ggsave("body_plot.png", plot = p, width = 18, height = 18, units = "in", dpi = 300)
-
