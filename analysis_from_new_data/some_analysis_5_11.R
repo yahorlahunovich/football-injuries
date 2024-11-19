@@ -4,6 +4,9 @@ library(ggtext)
 library(lubridate)
 library(tools)
 library(png)
+library(grid)
+library(showtext)
+library(cowplot)
 
 df <- read.csv("~/Documents/uni/sem_3/twd/football-injuries/analysis_from_new_data/Final-player.csv")
 injuries <- read.csv("~/Documents/uni/sem_3/twd/football-injuries/analysis_from_new_data/Final-player-injuies.csv")
@@ -39,13 +42,21 @@ inj_rec <- injuries %>%
   head(15) 
 
 
-background_image <- png::readPNG("~/Documents/uni/sem_3/twd/football-injuries/analy")
+font_add_google("Roboto", "roboto")
+showtext_auto()
 
-ggplot(inj_rec, aes(x = reorder(type, mean_day), y = mean_day, fill = count)) +
+background_image <- png::readPNG("~/Documents/uni/sem_3/twd/football-injuries/images/texture.png")
+background_grob <- rasterGrob(
+  background_image, 
+  width = unit(1, "npc"), 
+  height = unit(1, "npc")
+)
+
+plot <- ggplot(inj_rec, aes(x = reorder(type, mean_day), y = mean_day, fill = count)) +
   geom_bar(stat = "identity", width = 0.7) +
   scale_fill_gradient(low = "#3F72AF", high = "#112D4E") +
   geom_text(aes(label = paste0(round(mean_day, 1))), 
-            hjust = -0.2, color = "#112D4E", size = 4, fontface = "bold") + 
+            hjust = -0.2, color = "#112D4E", size = 10, fontface = "bold") + 
   labs(
     title = "Average Recovery Time by Injury Type",
     subtitle = "Mean days required for players to recover from top 15 types of injury",
@@ -55,23 +66,32 @@ ggplot(inj_rec, aes(x = reorder(type, mean_day), y = mean_day, fill = count)) +
   ) +
   coord_flip() + 
   expand_limits(y = max(inj_rec$mean_day) * 1.1) +
-  theme_minimal(base_size = 15) + 
+  theme_minimal(base_size = 12, base_family = "roboto") +
   theme(
     panel.grid = element_blank(),
+    panel.background = element_rect(fill = NA, color = NA),  # Przezroczysty panel
+    plot.background = element_rect(fill = NA, color = NA),   # Przezroczyste tło
     plot.title = element_blank(),
-    plot.subtitle = element_text(size = 16, color = "#3F72AF"),
-    axis.title.x = element_text(size = 14, face = "bold", color = "#3F72AF"),
+    plot.subtitle = element_text(size = 25, color = "#3F72AF"),
+    axis.title.x = element_text(size = 20, face = "bold", color = "#3F72AF"),
     axis.title.y = element_blank(),
-    axis.text.x = element_text(size = 12, color = "#3F72AF"), 
-    axis.text.y = element_text(
-      size = 12, 
-      face = "bold", 
-      color = "#3F72AF",
-      margin = margin(r = 10)
-    ), 
-    legend.title = element_text(size = 14, face = "bold", color = "#3F72AF"),
-    legend.text = element_text(size = 12, color = "#3F72AF")
+    axis.text.x = element_text(size = 20, color = "#3F72AF"), 
+    axis.text.y = element_text(size = 20, face = "bold", color = "#3F72AF"),
+    legend.title = element_text(size = 20, face = "bold", color = "#3F72AF"),
+    legend.text = element_text(size = 20, color = "#3F72AF")
   )
+
+plot
+
+ggsave(
+  "updated_plot_high_res.png", 
+  bg = "transparent",
+  plot = plot, 
+  width = 12, 
+  height = 8, 
+  units = "in",
+  dpi = 150
+)
 
 #bmi
 injuries <- injuries %>%
@@ -192,38 +212,55 @@ injury_rates <- lapply(injury_types, function(injury_type) {
 }) %>% 
   bind_rows()
 
-# Plot the injury rates by age for each injury type
-ggplot(injury_rates, aes(x = age, y = rate, color = injury_type)) +
+injury_rates_filtered <- injury_rates %>%
+  filter(age >= 18 & age <= 38)
+
+# Построение графика
+plot2 <- ggplot(injury_rates_filtered, aes(x = age, y = rate, color = injury_type)) +
   geom_line(size = 1) +
   geom_point(size = 3) +
   labs(
-    title = "Proportion of Injuries by Player Age",
-    subtitle = "Normalized by Total Number of Players",
+    title = "Proportion of Injuries by Player Age",  # Тайтл
+    subtitle = "Normalized by Total Number of Players",  # Сабтайтл
     x = "Age (Years)",
     y = "Proportion of Injuries",
     color = "Injury Type"
   ) +
-  theme_minimal() +
+  theme_minimal(base_size = 20, base_family = "roboto") +
   theme(
-    plot.background = element_rect(fill = "#DBE2EF", color = NA),  # фон графика
-    panel.background = element_rect(fill = "#DBE2EF", color = NA),  # фон панели
-    plot.title = element_text(size = 24, face = "bold", color = "#3F72AF"),  # цвет заголовка
-    plot.subtitle = element_text(size = 16, color = "#3F72AF"),  # цвет подзаголовка
-    axis.title.x = element_text(size = 14, face = "bold", color = "#3F72AF"),  # цвет оси X
-    axis.title.y = element_text(size = 14, face = "bold", color = "#3F72AF"),  # цвет оси Y
-    axis.text.x = element_text(size = 12, color = "#3F72AF"),  # цвет текста оси X
-    axis.text.y = element_text(
-      size = 12,
-      face = "bold",
-      color = "#3F72AF",
-      margin = margin(r = 5)
-    ),  # цвет текста оси Y
+    plot.background = element_rect(fill = NA, color = NA),
+    panel.background = element_rect(fill = NA, color = NA),
+    plot.title = element_text(
+      size = 25, face = "bold", color = "#3F72AF", 
+      hjust = 0.5  # Выравнивание по центру
+    ),
+    plot.subtitle = element_text(
+      size = 20, color = "#3F72AF", face = "bold",
+      hjust = 0.5  # Выравнивание по центру
+    ),
+    axis.title.x = element_text(size = 20, face = "bold", color = "#3F72AF"),
+    axis.title.y = element_text(size = 20, face = "bold", color = "#3F72AF"),
+    axis.text.x = element_text(size = 20, color = "#3F72AF"),
+    axis.text.y = element_text(size = 20, color = "#3F72AF"),
+    legend.title = element_text(size = 20, face = "bold", color = "#3F72AF"),
+    legend.text = element_text(size = 20, color = "#3F72AF"),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
   ) +
   scale_y_continuous(labels = scales::percent_format()) +
   coord_cartesian(clip = "off") +
-  scale_color_manual(values = c("#3F72AF", "#112D4E", "#006400", "#8B0000", "#0000FF")) 
+  scale_color_manual(values = c("#3F72AF", "#112D4E", "#006400", "#8B0000", "#0000FF"))
+
+ggsave(
+  "updated_plot_high_res2.png", 
+  bg = "transparent",
+  plot = plot2, 
+  width = 12, 
+  height = 8, 
+  units = "in",
+  dpi = 150
+)
+
 # Popular players
 # Hazard, Neymar, Ronaldo, Messi, Lewandowski
 
