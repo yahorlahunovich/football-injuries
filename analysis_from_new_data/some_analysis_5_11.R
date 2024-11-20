@@ -59,26 +59,26 @@ plot <- ggplot(inj_rec, aes(x = reorder(type, mean_day), y = mean_day, fill = co
             hjust = -0.2, color = "#112D4E", size = 10, fontface = "bold") + 
   labs(
     title = "Average Recovery Time by Injury Type",
-    subtitle = "Mean days required for players to recover from top 15 types of injury",
+    #subtitle = "Mean days required for players to recover from top 15 types of injury",
     x = "Injury Type",
     y = "Average Days to Recover",
     fill = "Frequency"
   ) +
   coord_flip() + 
   expand_limits(y = max(inj_rec$mean_day) * 1.1) +
-  theme_minimal(base_size = 12, base_family = "roboto") +
+  theme_minimal(base_size = 20, base_family = "roboto") +
   theme(
     panel.grid = element_blank(),
-    panel.background = element_rect(fill = NA, color = NA),  # Przezroczysty panel
-    plot.background = element_rect(fill = NA, color = NA),   # Przezroczyste tło
+    panel.background = element_rect(fill = NA, color = NA), 
+    plot.background = element_rect(fill = NA, color = NA),   
     plot.title = element_blank(),
     plot.subtitle = element_text(size = 25, color = "#3F72AF"),
-    axis.title.x = element_text(size = 20, face = "bold", color = "#3F72AF"),
+    axis.title.x = element_text(size = 25, face = "bold", color = "#3F72AF"),
     axis.title.y = element_blank(),
-    axis.text.x = element_text(size = 20, color = "#3F72AF"), 
-    axis.text.y = element_text(size = 20, face = "bold", color = "#3F72AF"),
-    legend.title = element_text(size = 20, face = "bold", color = "#3F72AF"),
-    legend.text = element_text(size = 20, color = "#3F72AF")
+    axis.text.x = element_text(size = 25, color = "#3F72AF"), 
+    axis.text.y = element_text(size = 25, face = "bold", color = "#3F72AF"),
+    legend.title = element_text(size = 25, face = "bold", color = "#3F72AF"),
+    legend.text = element_text(size = 25, color = "#3F72AF")
   )
 
 plot
@@ -87,7 +87,7 @@ ggsave(
   "updated_plot_high_res.png", 
   bg = "transparent",
   plot = plot, 
-  width = 12, 
+  width = 15, 
   height = 8, 
   units = "in",
   dpi = 150
@@ -178,17 +178,15 @@ total_players <- injuries %>%
     .groups = 'drop'
   )
 
-# Process each injury type
 injury_rates <- lapply(injury_types, function(injury_type) {
   injuries_filtered <- injuries %>% 
     filter(type == injury_type) %>% 
     mutate(
       birth_date = ymd(birth),
       season_end_year = paste0("20", substr(season, 4, 5)),
-      # Make sure to handle NA cases or unexpected season format
       injury_date = tryCatch(
         ymd(paste0(season_end_year, "-06-30")),
-        error = function(e) NA  # return NA if error occurs
+        error = function(e) NA  
       ),
       age = ifelse(!is.na(injury_date), as.integer(interval(birth_date, injury_date) / years(1)), NA)
     )
@@ -215,13 +213,10 @@ injury_rates <- lapply(injury_types, function(injury_type) {
 injury_rates_filtered <- injury_rates %>%
   filter(age >= 18 & age <= 38)
 
-# Построение графика
 plot2 <- ggplot(injury_rates_filtered, aes(x = age, y = rate, color = injury_type)) +
   geom_line(size = 1) +
   geom_point(size = 3) +
   labs(
-    title = "Proportion of Injuries by Player Age",  # Тайтл
-    subtitle = "Normalized by Total Number of Players",  # Сабтайтл
     x = "Age (Years)",
     y = "Proportion of Injuries",
     color = "Injury Type"
@@ -231,19 +226,19 @@ plot2 <- ggplot(injury_rates_filtered, aes(x = age, y = rate, color = injury_typ
     plot.background = element_rect(fill = NA, color = NA),
     panel.background = element_rect(fill = NA, color = NA),
     plot.title = element_text(
-      size = 25, face = "bold", color = "#3F72AF", 
-      hjust = 0.5  # Выравнивание по центру
+      size = 20, face = "bold", color = "#3F72AF", 
+      hjust = 0.5  
     ),
     plot.subtitle = element_text(
       size = 20, color = "#3F72AF", face = "bold",
-      hjust = 0.5  # Выравнивание по центру
+      hjust = 0.5 
     ),
-    axis.title.x = element_text(size = 20, face = "bold", color = "#3F72AF"),
-    axis.title.y = element_text(size = 20, face = "bold", color = "#3F72AF"),
-    axis.text.x = element_text(size = 20, color = "#3F72AF"),
-    axis.text.y = element_text(size = 20, color = "#3F72AF"),
-    legend.title = element_text(size = 20, face = "bold", color = "#3F72AF"),
-    legend.text = element_text(size = 20, color = "#3F72AF"),
+    axis.title.x = element_text(size = 25, face = "bold", color = "#3F72AF"),
+    axis.title.y = element_text(size = 25, face = "bold", color = "#3F72AF"),
+    axis.text.x = element_text(size = 25, color = "#3F72AF"),
+    axis.text.y = element_text(size = 25, color = "#3F72AF"),
+    legend.title = element_text(size = 25, face = "bold", color = "#3F72AF"),
+    legend.text = element_text(size = 25, color = "#3F72AF"),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
   ) +
